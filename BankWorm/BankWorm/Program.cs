@@ -26,7 +26,7 @@ namespace BankWorm
                 Console.WriteLine("-- 'R' for reports");
                 Console.WriteLine("-- 'Q' to quit");
 
-                var input = Console.ReadLine();
+                var input = Console.ReadLine().ToUpper();
 
                 switch (input)
                 {
@@ -69,6 +69,7 @@ namespace BankWorm
             {
                 case "C":
                     _customerService.CreateCheckingAccount(acctCustId, accountName);
+
                     Console.WriteLine("Congratulations! you have opened a Checking Account");
                     break;
                 case "S":
@@ -88,6 +89,70 @@ namespace BankWorm
             }
         }
 
+        public static bool ManageAccountPrompts()
+        {
+            Console.WriteLine("Enter the customer Id for which you want to manipulate the account.");
+            var accountCustId = Convert.ToInt32(Console.ReadLine());
+            Console.WriteLine("Enter the account Id you want to manipulate.");
+            var accountId = Convert.ToInt32(Console.ReadLine());
+
+            var customer = _customerService.GetCustomerById(accountCustId);
+
+            if (customer != null)
+            {
+                var account = customer.Accounts.Where(a => a.Id == accountId).FirstOrDefault();
+
+                if (account != null)
+                {
+                    Console.WriteLine("you have selected the following account");
+                    Console.WriteLine($"-- {account.Id}, {account.Name}, {account.AcctType} ({account.Balance})");
+                    Console.WriteLine("Please select the option below");
+                    Console.WriteLine("-- 'D' to delete an account");
+                    Console.WriteLine("-- 'P' to Populate the Account with transaction through file(Authorized Personnel only");
+                    Console.WriteLine("-- 'U' update an account");
+                    Console.WriteLine("-- 'X' Go back to customer menu");
+
+                    var input1 = Console.ReadLine().ToUpper();
+
+                    switch (input1)
+                    {
+                        case "D":
+                            var isRemoved = _customerService.RemoveAccount(customer, account);
+                            if (!isRemoved)
+                            {
+                                Console.WriteLine("Cannot delete this account. Please ask assitance!");
+                            }
+                            else
+                            {
+                                Console.WriteLine("The selected account has been deleted");
+                            }
+                            break;
+
+                        case "P":
+                            _customerService.PopulateAccount(account);
+                            break;
+
+                        case "U":
+                            Console.WriteLine("Enter the new Account Name");
+                            var newName = Console.ReadLine();
+
+                            _customerService.UpdateAccount(customer, account, newName);
+                            Console.WriteLine("The selected account has been updated");
+                            break;
+
+                        case "X":
+                            break;
+
+                        default:
+                            Console.WriteLine("Unrecognized option");
+                            break;
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static void ManageCustomerPrompts()
         {
             var manageCustomers = true;
@@ -102,7 +167,7 @@ namespace BankWorm
                 Console.WriteLine("-- 'D' to deposit into an account");
                 Console.WriteLine("-- 'X' to return to the Main Menu");
 
-                var input = Console.ReadLine();
+                var input = Console.ReadLine().ToUpper();
 
                 switch (input)
                 {
@@ -142,11 +207,14 @@ namespace BankWorm
                         {
                             Console.WriteLine($"The Customer {customerSearched.Id} belongs to {customerSearched.Name}.");
                             Console.WriteLine($"the email of this customer is {customerSearched.Email}");
-                            Console.WriteLine($"This customer has {customerSearched.Accounts.Count()} Accounts");
-
-                            foreach (var a in customerSearched.Accounts)
+                            if (customerSearched.Accounts != null)
                             {
-                                Console.WriteLine($"-- {a.Name} {a.AcctType} ({a.Balance})");
+                                Console.WriteLine($"This customer has {customerSearched.Accounts.Count()} Accounts");
+
+                                foreach (var a in customerSearched.Accounts)
+                                {
+                                    Console.WriteLine($"-- {a.Name} {a.AcctType} ({a.Balance})");
+                                }
                             }
                         }
                         else
@@ -158,6 +226,14 @@ namespace BankWorm
                     case "A":
                         Console.WriteLine("Enter the customer Id for which you want to open account.");
                         var acctCustId = Convert.ToInt32(Console.ReadLine());
+
+                        var customerFound = _customerService.GetCustomerById(acctCustId);
+
+                        if (customerFound == null)
+                        {
+                            Console.WriteLine("Customer not found");
+                            break;
+                        }
 
                         var isAccountCreate = true;
                         while (isAccountCreate)
@@ -172,44 +248,10 @@ namespace BankWorm
                         break;
 
                     case "M":
-                        Console.WriteLine("Enter the customer Id for which you want to manipulate the account.");
-                        var accountCustId = Convert.ToInt32(Console.ReadLine());
-                        Console.WriteLine("Enter the account Id you want to manipulate.");
-                        var accountId = Convert.ToInt32(Console.ReadLine());
-
-                        var customer = _customerService.GetCustomerById(accountCustId);
-                        var account = customer.Accounts.Where(a => a.Id == accountId).FirstOrDefault();
-
-                        Console.WriteLine("you have selected the following account");
-                        Console.WriteLine($"-- {account.Id}, {account.Name}, {account.AcctType} ({account.Balance})");
-                        Console.WriteLine("Please select the option below");
-                        Console.WriteLine("-- 'D' to delete an account");
-                        Console.WriteLine("-- 'U' update an account");
-                        Console.WriteLine("-- 'X' Go back to customer menu");
-
-                        var input1 = Console.ReadLine();
-
-                        switch (input1)
+                        var isAcctManipulated = ManageAccountPrompts();
+                        if(!isAcctManipulated)
                         {
-                            case "D":
-                                account = null;
-                                break;
-
-                            case "U":
-                                _customerService.PopulateAccount(account);
-
-                                Console.WriteLine("Enter the new Account Name");
-                                account.Name = Console.ReadLine();
-                                Console.WriteLine("The new account details are: ");
-                                Console.WriteLine($"-- {account.Id}, {account.Name}, {account.AcctType} ({account.Balance})");
-                                break;
-
-                            case "X":
-                                break;
-
-                            default:
-                                Console.WriteLine("Unrecognized option");
-                                break;
+                            Console.WriteLine("Invalid Customer / Account Id");
                         }
                         break;
 
@@ -218,26 +260,44 @@ namespace BankWorm
                         var custId2 = Convert.ToInt32(Console.ReadLine());
                         Console.WriteLine("Enter the account Id.");
                         var acctId = Convert.ToInt32(Console.ReadLine());
+
+                        var customerTransaction = _customerService.GetCustomerById(custId2);
+                        var account = customerTransaction.Accounts.Where(a => a.Id == acctId).FirstOrDefault();
+                        if ((customerTransaction == null) || (account == null))
+                        {
+                            Console.WriteLine("Customer / account ID could not be found");
+                            break;
+                        }
+
                         Console.WriteLine("Enter the amount you want to deposit");
                         var amount1 = Convert.ToDecimal(Console.ReadLine());
                         Console.WriteLine("Enter a comment (optional)");
                         var memo1 = Console.ReadLine();
 
-                        _customerService.CreateCreditTransaction(custId2, acctId, amount1, memo1);
+                        _customerService.CreateCreditTransaction(customerTransaction, account, amount1, memo1);
                         Console.WriteLine("your account has been credited");
                         break;
 
                     case "W":
                         Console.WriteLine("Enter the customer Id.");
-                        var CustId1 = Convert.ToInt32(Console.ReadLine());
+                        var custId1 = Convert.ToInt32(Console.ReadLine());
                         Console.WriteLine("Enter the account Id.");
                         var acctId1 = Convert.ToInt32(Console.ReadLine());
+
+                        var customerTransaction1 = _customerService.GetCustomerById(custId1);
+                        var account1 = customerTransaction1.Accounts.Where(a => a.Id == acctId1).FirstOrDefault();
+                        if ((customerTransaction1 == null) || (account1 == null))
+                        {
+                            Console.WriteLine("Customer / account ID could not be found");
+                            break;
+                        }
+
                         Console.WriteLine("Enter the amount you want to withdrawl");
                         var amount = Convert.ToDecimal(Console.ReadLine());
                         Console.WriteLine("Enter a comment (optional)");
                         var memo = Console.ReadLine();
 
-                        var isDebit = _customerService.CreateDebitTransaction(CustId1, acctId1, amount, memo);
+                        var isDebit = _customerService.CreateDebitTransaction(customerTransaction1, account1, amount, memo);
                         if (isDebit)
                         {
                             Console.WriteLine("your account has been debited");
@@ -269,7 +329,7 @@ namespace BankWorm
                 Console.WriteLine("-- 'T' to show all Transactions by start/end date for an account");
                 Console.WriteLine("-- 'X' to return to the Main Menu");
 
-                var input = Console.ReadLine();
+                var input = Console.ReadLine().ToUpper();
 
                 switch (input)
                 {
@@ -297,7 +357,7 @@ namespace BankWorm
                         {
                             var account = c.Accounts.Where(a => a.Id == acctId).FirstOrDefault();
 
-                            if (account != null)
+                            if ((account != null) && (account.Transactions != null))
                             {
                                 foreach (var t in account.Transactions)
                                 {

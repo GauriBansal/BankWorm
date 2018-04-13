@@ -92,64 +92,90 @@ namespace BankWorm.Services
             return customer.Id;
         }
 
-        public bool CreateDebitTransaction(int custId, int accountId, decimal amount, string memo)
+        public bool CreateDebitTransaction(Customer customer, Account account, decimal amount, string memo)
         {
-            var customer = GetCustomerById(custId);
-            var account = customer.Accounts.Where(a => a.Id == accountId).FirstOrDefault();
-
             if (account.AcctType == AccountType.Savings)
             {
                 var currentMonth = DateTime.Now.Month;
                 var counter = 0;
-                foreach (var t in account.Transactions)
+                if (account.Transactions != null)
                 {
-                    var transMonth = t.TransactionDate.Month;
-                    if(transMonth == currentMonth)
+                    foreach (var t in account.Transactions)
                     {
-                        counter += 1;
+                        var transMonth = t.TransactionDate.Month;
+                        if (transMonth == currentMonth)
+                        {
+                            counter += 1;
+                        }
+                    }
+                    if (counter >= 3)
+                    {
+                        return false;
                     }
                 }
-                if(counter >=3)
-                {
-                    return false;
-                }
+            }
+
+            _customers.Remove(customer);
+            customer.Accounts.Remove(account);
+
+            if (account.Transactions == null)
+            {
+                account.Transactions = new List<Transaction>() { };
             }
 
             if (account.Balance < amount)
             {
                 if(account.AcctType == AccountType.Checkings)
                 {
-                    CreateTransaction(15, "Overdraft fee", TransactionType.Debit);
+                    var transactionOC = CreateTransaction(15, "Overdraft fee", TransactionType.Debit);
+                    account.Transactions.Add(transactionOC);
                 }
                 else
                 {
-                    CreateTransaction(20, "Overdraft fee", TransactionType.Debit);
+                    var transactionOS = CreateTransaction(20, "Overdraft fee", TransactionType.Debit);
+                    account.Transactions.Add(transactionOS);
                 }
             }
 
-            CreateTransaction(amount, memo, TransactionType.Debit);
+            var transaction = CreateTransaction(amount, memo, TransactionType.Debit);
+            account.Transactions.Add(transaction);
+            customer.Accounts.Add(account);
             _customers.Add(customer);
+
             return true;
         }
 
-        public void CreateTransaction(decimal amount, string memo, TransactionType type)
+        public void CreateCreditTransaction(Customer customer, Account account, decimal amount, string memo)
         {
-            var transaction = new Transaction
+             var transaction = CreateTransaction(amount, memo, TransactionType.Credit);
+            _customers.Remove(customer);
+            customer.Accounts.Remove(account);
+
+            if (account.Transactions != null)
+            {
+                account.Transactions.Add(transaction);
+            }
+            else
+            {
+                account.Transactions = new List<Transaction>
+                {
+                    transaction
+                };
+            }
+
+            customer.Accounts.Add(account);
+            _customers.Add(customer);
+        }
+
+        public Transaction CreateTransaction(decimal amount, string memo, TransactionType type)
+        {
+            return (new Transaction
             {
                 Amount = amount,
                 Memo = memo,
                 TransactionDate = DateTime.Now,
                 TType = type
-            };
-        }
-
-        public void CreateCreditTransaction(int custId, int acctId, decimal amount, string memo)
-        {
-            var customer = GetCustomerById(custId);
-            var account = customer.Accounts.Where(a => a.Id == acctId).FirstOrDefault();
-
-            CreateTransaction(amount, memo, TransactionType.Credit);
-            _customers.Add(customer);
+            });
         }
 
         public void CreateCheckingAccount(int custId, string name)
@@ -159,7 +185,8 @@ namespace BankWorm.Services
 
             if (customer.Accounts != null)
             {
-                customer.Accounts.ToList().Add(new Account
+                _customers.Remove(customer);
+                customer.Accounts.Add(new Account
                 {
                     Id = _random.Next(1, 10000000),
                     Name = name,
@@ -168,6 +195,7 @@ namespace BankWorm.Services
             }
             else
             {
+                _customers.Remove(customer);
                 customer.Accounts = new List<Account>
                 {
                     new Account
@@ -179,7 +207,6 @@ namespace BankWorm.Services
                 };
             }
             _customers.Add(customer);
-            
         }
 
         public bool CreateSavingsAccount(int custId, string name)
@@ -193,7 +220,8 @@ namespace BankWorm.Services
                     var savingAccountCount = customer.Accounts.Count(a => a.AcctType == AccountType.Savings);
                     if (savingAccountCount < 2)
                     {
-                        customer.Accounts.ToList().Add(new Account
+                        _customers.Remove(customer);
+                        customer.Accounts.Add(new Account
                         {
                             Id = _random.Next(1, 10000000),
                             Name = name,
@@ -205,6 +233,29 @@ namespace BankWorm.Services
                 }
             }
             return false;
+        }
+
+        public bool RemoveAccount(Customer customer, Account account)
+        {
+            if (account.Balance == 0.0M)
+            {
+                _customers.Remove(customer);
+                customer.Accounts.Remove(account);
+                _customers.Add(customer);
+                return true;
+            }
+            return false;
+        }
+
+        public void UpdateAccount(Customer customer, Account account, string newAcctName)
+        {
+            _customers.Remove(customer);
+            customer.Accounts.Remove(account);
+
+            account.Name = newAcctName;
+            customer.Accounts.Add(account);
+            _customers.Add(customer);
+            
         }
 
         public void PopulateAccount(Account accountToPopulate)

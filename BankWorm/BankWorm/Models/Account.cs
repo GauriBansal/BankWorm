@@ -17,15 +17,18 @@ namespace BankWorm.Models
             get
             {
                 var accountBalance = 0.0M;
-                foreach(var t in Transactions)
+                if (Transactions != null)
                 {
-                    if(t.TType == TransactionType.Credit)
+                    foreach (var t in Transactions)
                     {
-                        accountBalance += t.Amount;
-                    }
-                    else
-                    {
-                        accountBalance -= t.Amount;
+                        if (t.TType == TransactionType.Credit)
+                        {
+                            accountBalance += t.Amount;
+                        }
+                        else
+                        {
+                            accountBalance -= t.Amount;
+                        }
                     }
                 }
                 return accountBalance;
