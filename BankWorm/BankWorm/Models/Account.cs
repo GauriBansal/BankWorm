@@ -12,7 +12,25 @@ namespace BankWorm.Models
         public int Id { get; set; }
         public AccountType AcctType { get; set; }
         public string Name { get; set; }
-        public decimal Balance { get; set; }
-
+        public decimal Balance
+        {
+            get
+            {
+                var accountBalance = 0.0M;
+                foreach(var t in Transactions)
+                {
+                    if(t.TType == TransactionType.Credit)
+                    {
+                        accountBalance += t.Amount;
+                    }
+                    else
+                    {
+                        accountBalance -= t.Amount;
+                    }
+                }
+                return accountBalance;
+            }
+        }
+        public IEnumerable<Transaction> Transactions { get; set; }
     }
 }

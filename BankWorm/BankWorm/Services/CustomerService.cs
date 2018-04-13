@@ -10,7 +10,7 @@ namespace BankWorm.Services
 {
     public class CustomerService
     {
-        private readonly IEnumerable<Customer> _customers;
+        private readonly List<Customer> _customers;
         private readonly Random _random = new Random();
 
         public CustomerService()
@@ -29,15 +29,40 @@ namespace BankWorm.Services
                             Id = 1001,
                             AcctType = AccountType.Checkings,
                             Name = "Bansal Treasures 1",
-                            Balance = 156789.09M
+                            Transactions = new List<Transaction>
+                            {
+                                new Transaction
+                                {
+                                    Amount = 123.78M,
+                                    Memo = "Intial Transaction on 1001",
+                                    TType = TransactionType.Credit,
+                                    TransactionDate = DateTime.Now
+                                }
+                            }
                         },
                         new Account
                         {
                             Id = 1002,
                             AcctType = AccountType.Savings,
                             Name = "Bansal Treasures 2",
-                            Balance = 100009.09M
-                        }
+                            Transactions = new List<Transaction>
+                            {
+                                new Transaction
+                                {
+                                    Amount = 100.78M,
+                                    Memo = "Intial Transaction on 1002",
+                                    TType = TransactionType.Debit,
+                                    TransactionDate = DateTime.Now
+                                },
+                                new Transaction
+                                {
+                                    Amount = 187654.78M,
+                                    Memo = "2nd Transaction on 1002",
+                                    TType = TransactionType.Credit,
+                                    TransactionDate = DateTime.Now
+                                }
+                            }
+                         }
                     }
                 }
             };
@@ -53,7 +78,7 @@ namespace BankWorm.Services
             return _customers.FirstOrDefault(c => c.Id == customerId);
         }
 
-        public Customer Create(string name, string email)
+        public int Create(string name, string email)
         {
             var customer = new Customer
             {
@@ -62,8 +87,68 @@ namespace BankWorm.Services
                 Email = email
             };
             
-            _customers.ToList().Add(customer);
-            return customer;
+            _customers.Add(customer);
+            return customer.Id;
+        }
+
+        public bool CreateDebitTransaction(int custId, int accountId, decimal amount, string memo)
+        {
+            var customer = GetCustomerById(custId);
+            var account = customer.Accounts.Where(a => a.Id == accountId).FirstOrDefault();
+
+            if (account.AcctType == AccountType.Savings)
+            {
+                var currentMonth = DateTime.Now.Month;
+                var counter = 0;
+                foreach (var t in account.Transactions)
+                {
+                    var transMonth = t.TransactionDate.Month;
+                    if(transMonth == currentMonth)
+                    {
+                        counter += 1;
+                    }
+                }
+                if(counter >=3)
+                {
+                    return false;
+                }
+            }
+
+            if (account.Balance < amount)
+            {
+                if(account.AcctType == AccountType.Checkings)
+                {
+                    CreateTransaction(15, "Overdraft fee", TransactionType.Debit);
+                }
+                else
+                {
+                    CreateTransaction(20, "Overdraft fee", TransactionType.Debit);
+                }
+            }
+
+            CreateTransaction(amount, memo, TransactionType.Debit);
+            _customers.Add(customer);
+            return true;
+        }
+
+        public void CreateTransaction(decimal amount, string memo, TransactionType type)
+        {
+            var transaction = new Transaction
+            {
+                Amount = amount,
+                Memo = memo,
+                TransactionDate = DateTime.Now,
+                TType = type
+            };
+        }
+
+        public void CreateCreditTransaction(int custId, int acctId, decimal amount, string memo)
+        {
+            var customer = GetCustomerById(custId);
+            var account = customer.Accounts.Where(a => a.Id == acctId).FirstOrDefault();
+
+            CreateTransaction(amount, memo, TransactionType.Credit);
+            _customers.Add(customer);
         }
 
         public void CreateCheckingAccount(int custId, string name)
@@ -92,7 +177,8 @@ namespace BankWorm.Services
                     }
                 };
             }
-            _customers.PersistChanges(customer);
+            _customers.Add(customer);
+            
         }
 
         public bool CreateSavingsAccount(int custId, string name)
@@ -112,39 +198,12 @@ namespace BankWorm.Services
                             Name = name,
                             AcctType = AccountType.Savings
                         });
-                        _customers.PersistChanges(customer);
+                        _customers.Add(customer);
                         return true;
                     }
                 }
             }
             return false;
-        }
-
-    }
-
-    public static class FakeDatabase
-    {
-        public static void PersistChanges(this IEnumerable<Customer> customers, Customer newOrUpdatedCustomer)
-        {
-            var existingCustomer = customers.FirstOrDefault(c => c.Id == newOrUpdatedCustomer.Id);
-            if (existingCustomer == null)
-            {
-                customers.ToList().Add(newOrUpdatedCustomer);
-            }
-
-            if (existingCustomer.Accounts != null && !existingCustomer.Accounts.Any() && newOrUpdatedCustomer.Accounts.Any())
-            {
-                existingCustomer.Accounts.ToList().AddRange(newOrUpdatedCustomer.Accounts);
-            }
-
-            foreach (var a in newOrUpdatedCustomer.Accounts)
-            {
-                var existingAccount = existingCustomer.Accounts?.FirstOrDefault(c => c.Id == a.Id);
-                if (existingAccount == null)
-                {
-                    existingCustomer.Accounts.ToList().Add(a);
-                }
-            }
         }
     }
 }
