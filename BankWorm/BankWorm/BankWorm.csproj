@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enums\AccountType.cs" />
+    <Compile Include="Enums\EnumExtensions.cs" />
     <Compile Include="Enums\TransactionType.cs" />
     <Compile Include="Models\Account.cs" />
     <Compile Include="Models\Customer.cs" />

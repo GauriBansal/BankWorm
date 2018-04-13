@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BankWorm.Models;
 using BankWorm.Enums;
+using System.IO;
 
 namespace BankWorm.Services
 {
@@ -205,5 +206,33 @@ namespace BankWorm.Services
             }
             return false;
         }
+
+        public void PopulateAccount(Account accountToPopulate)
+        {
+            if (accountToPopulate.Transactions == null)
+            {
+                accountToPopulate.Transactions = new List<Transaction>();
+            }
+
+            var fileName1 = "C:\\Source\\acadotnet\\BankWorm\\transactionfile-data.csv";
+
+            var fileContents = File.ReadAllLines(fileName1).ToList().Skip(1);
+            foreach (var line in fileContents)
+            {
+                var cells = line.Split(',');
+
+                var transaction = new Transaction
+                {
+                    TransactionDate = DateTime.Parse(cells[0]),
+                    Memo = cells[1],
+                    TType = EnumExtensions.ConvertTransactionType(cells[2]),
+                    Amount = Convert.ToDecimal(cells[3])
+                };
+
+                accountToPopulate.Transactions.Add(transaction);
+            }
+
+        }
+
     }
 }

@@ -31,6 +31,6 @@ namespace BankWorm.Models
                 return accountBalance;
             }
         }
-        public IEnumerable<Transaction> Transactions { get; set; }
+        public List<Transaction> Transactions { get; set; }
     }
 }

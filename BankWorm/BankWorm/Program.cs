@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BankWorm.Models;
 using BankWorm.Services;
 using BankWorm.Enums;
+using System.IO;
 
 namespace BankWorm
 {
@@ -44,9 +45,9 @@ namespace BankWorm
                     default:
                         break;
                 }
-
-                Console.WriteLine("GoodBye");
-                Console.ReadLine();
+                
+            Console.WriteLine("GoodBye");
+            Console.ReadLine();
             }
         }
 
@@ -195,6 +196,8 @@ namespace BankWorm
                                 break;
 
                             case "U":
+                                _customerService.PopulateAccount(account);
+
                                 Console.WriteLine("Enter the new Account Name");
                                 account.Name = Console.ReadLine();
                                 Console.WriteLine("The new account details are: ");
@@ -255,7 +258,7 @@ namespace BankWorm
                 }
             }
         }
-        
+
         public static void ManageReporting()
         {
             var manageReports = true;
@@ -276,7 +279,7 @@ namespace BankWorm
                         Console.WriteLine($"-- AccountId --\t-- AccountName --\t-- AccountType --\t-- Balance--");
                         foreach (var c in customers)
                         {
-                            foreach(var a in c.Accounts)
+                            foreach (var a in c.Accounts)
                             {
                                 Console.WriteLine($"-- {a.Id} --\t-- {a.Name} --\t-- {a.AcctType} --\t-- {a.Balance}--");
                             }
@@ -293,10 +296,10 @@ namespace BankWorm
                         foreach (var c in customers1)
                         {
                             var account = c.Accounts.Where(a => a.Id == acctId).FirstOrDefault();
-                            
-                            if(account != null)
+
+                            if (account != null)
                             {
-                                foreach(var t in account.Transactions)
+                                foreach (var t in account.Transactions)
                                 {
                                     Console.WriteLine($"-- {t.TType} --\t-- {t.Amount} --\t-- {t.Memo} --\t-- {t.TransactionDate}--");
                                 }
@@ -314,6 +317,36 @@ namespace BankWorm
                 }
             }
         }
+
+        //    public static void ReadFile()
+        //    {
+        //        var fileName1 = "C:\\Source\\acadotnet\\BankWorm\\transactionfile-data.csv";
+        //        var fileName2 = @"C:\Source\acadotnet\BankWorm\transactionfile.csv";
+
+        //        var fileContents = File.ReadAllLines(fileName1).ToList().Skip(1);
+        //        foreach(var line in fileContents)
+        //        {
+        //            var cells = line.Split(',');
+
+        //            var tfv = new TestFileValues
+        //            {
+        //                Cell1 = cells[0],
+        //                Cell2 = cells[1],
+        //                Cell3 = cells[2],
+        //                Cell4 = cells[3]
+        //            };
+
+        //        }
+        //    }
+        //}
+
+        //class TestFileValues
+        //{
+        //    public string Cell1 { get; set; }
+        //    public string Cell2 { get; set; }
+        //    public string Cell3 { get; set; }
+        //    public string Cell4 { get; set; }
+        //}
     }
 }
 
